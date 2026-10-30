@@ -1,67 +1,108 @@
-MailSentinel AI — Architecture
+MailSentinel AI — System Architecture
 
 Overview
 
-MailSentinel AI uses n8n to orchestrate email intake, AI-based classification, response drafting, approval-oriented processing, and database logging.
+MailSentinel AI is an AI-powered email classification and response automation system built using n8n, Ollama, PostgreSQL and Notion.
 
-Technology Components
+The system processes incoming emails, classifies their intent and urgency, retrieves relevant business policy information from Notion, generates context-aware response drafts and routes sensitive or uncertain cases for human approval.
 
-- n8n: Workflow orchestration and automation.
-- Ollama: Local AI model runtime.
-- Qwen3 14B: Email classification and response generation.
-- PostgreSQL: Storage of workflow action logs.
-- Webhook: Incoming email data intake.
+Architecture Components
 
-Workflow Architecture
+1. Email Intake
 
-1. Incoming email data is received through an n8n webhook.
-2. The workflow processes the email information.
-3. Ollama receives the email content for AI classification.
-4. The AI generates category, urgency, confidence, review status, and a response draft.
-5. n8n evaluates the output and routes the message through the configured workflow.
-6. Approval-related steps support human review.
-7. PostgreSQL records relevant workflow actions.
+The workflow receives incoming email data through a configured webhook.
 
-Logical Data Flow
+The incoming email is processed to extract relevant information such as sender, subject and message content.
 
-Incoming Email
-      |
-      v
-  n8n Webhook
-      |
-      v
-Email Processing
-      |
-      v
-Ollama - Chat Model
-      |
-      v
-AI Classification
-      |
-      v
-Response Drafting
-      |
-      v
-Review / Approval Flow
-      |
-      v
-PostgreSQL Action Logging
+2. Email Classification
 
-Deployment
+Ollama processes the email using an LLM-based classification stage.
 
-The project runs locally using Docker-based n8n and PostgreSQL services, with Ollama providing local AI inference.
+The classifier generates structured information including:
 
-Reliability and Security
+- Email category.
+- Urgency level.
+- Confidence score.
+- Human review requirement.
+- Classification reasoning.
+- Response draft information.
 
-- Validate incoming email data.
-- Handle malformed AI responses.
-- Monitor service availability.
-- Protect webhook endpoints and credentials.
-- Review AI-generated responses before sending.
-- Avoid storing unnecessary personal email information.
+3. Knowledge Retrieval — Notion RAG
 
-Design Considerations
+Notion serves as the knowledge source for business policies and reference information.
 
-The architecture separates workflow orchestration, AI processing, and database logging to make the system easier to maintain and troubleshoot.
+The workflow retrieves relevant policy content based on the incoming email context.
 
-Note: The diagram represents the logical architecture. Refer to the actual n8n workflow for exact node connections and execution branches.
+The retrieved information is provided to the AI response-generation stage to support context-aware responses.
+
+This allows the system to use existing business knowledge rather than relying entirely on the model's general knowledge.
+
+4. Response Generation
+
+The AI uses the email content, classification results and relevant retrieved policy information to prepare a response draft.
+
+The generated response is intended to follow the available business policy context.
+
+5. Human Approval
+
+Emails requiring human review are routed through an approval process.
+
+The reviewer can approve or reject the proposed response.
+
+The workflow also handles responses that do not require manual review, according to the configured classification and routing logic.
+
+6. PostgreSQL Logging
+
+PostgreSQL stores relevant classification and workflow execution information.
+
+The database maintains records of classifier results and subsequent workflow actions.
+
+This supports execution tracking and auditing.
+
+7. Final Processing
+
+Based on the classification and approval outcome, the workflow follows the configured processing path.
+
+The system records the corresponding action and maintains the relevant execution history.
+
+Processing Flow
+
+Email Intake → Content Extraction → AI Classification → Notion Knowledge Retrieval → Context-Aware Response Generation → Human Approval or Automated Processing → PostgreSQL Logging
+
+Architecture Principles
+
+Modular Workflow Design
+
+Each processing stage performs a specific responsibility, allowing individual components to be maintained and modified independently.
+
+Knowledge-Grounded Responses
+
+Notion provides business-specific reference information to support more relevant and context-aware response generation.
+
+Human-in-the-Loop Control
+
+Sensitive or uncertain email cases can be escalated for human review instead of relying entirely on automated decisions.
+
+Structured AI Output
+
+The classification stage produces structured fields that support downstream routing and processing.
+
+Execution Tracking
+
+PostgreSQL maintains workflow records to support monitoring and auditing.
+
+Limitations
+
+- Classification quality depends on the selected LLM and email content.
+- Knowledge retrieval depends on the availability and quality of Notion reference information.
+- Generated responses require appropriate human oversight.
+- The system does not guarantee perfect classification or policy interpretation.
+
+Technology Stack
+
+- n8n — Workflow orchestration and automation.
+- Ollama — Local LLM inference.
+- PostgreSQL — Classification and execution logging.
+- Notion — Business knowledge source for RAG.
+- Webhooks — Email intake and workflow triggering.
+
